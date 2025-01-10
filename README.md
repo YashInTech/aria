@@ -23,7 +23,7 @@
    ```
 2. Navigate to the project directory:
    ```bash
-   cd ARIA
+   cd A.R.I.A.
    ```
 3. Install dependencies for both the client and server:
    ```bash
