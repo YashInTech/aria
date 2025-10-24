@@ -4,9 +4,11 @@ import jarvis from '../assets/jarvis.png';
 import CustomizedInput from '../components/shared/CustomizedInput';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const auth = useAuth();
+  const navigate = useNavigate();
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -15,10 +17,11 @@ function Login() {
     try {
       toast.loading('Signing in...', { id: 'login' });
       await auth?.login(email, password);
-      toast.success('Signing in SUccessful', { id: 'login' });
+      toast.success('Login successful!', { id: 'login' });
+      navigate('/chat');
     } catch (error) {
       console.error(error);
-      toast.error('Sign in Failed', { id: 'login' });
+      toast.error('Login failed', { id: 'login' });
     }
   };
   return (
