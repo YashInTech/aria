@@ -1,22 +1,71 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Box, Avatar, Typography, Button, IconButton } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { red } from '@mui/material/colors';
 import ChatItem from '../components/chat/ChatItem';
 import { IoMdSend } from 'react-icons/io';
 import { sendChatRequest } from '../helpers/api-communicator';
+import { useNavigate } from 'react-router-dom';
 
 type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
 
+// Helper function to safely extract initials
+const getInitials = (name: string | undefined): string => {
+  if (!name) return '';
+  const parts = name.split(' ').filter((part) => part.length > 0);
+
+  if (parts.length === 0) return '';
+
+  const firstInitial = parts[0][0];
+  const secondInitial = parts.length > 1 ? parts[1][0] : '';
+
+  return `${firstInitial}${secondInitial}`.toUpperCase();
+};
+
 const Chat = () => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const auth = useAuth();
+  const navigate = useNavigate();
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    if (auth?.isLoggedIn === false) {
+      navigate('/login');
+    }
+  }, [auth?.isLoggedIn, navigate]);
+
+  // Show loading while auth state is being determined
+  if (auth?.isLoggedIn === undefined) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        }}
+      >
+        <Typography
+          sx={{
+            color: 'white',
+            fontSize: '24px',
+            fontWeight: 600,
+          }}
+        >
+          Loading...
+        </Typography>
+      </Box>
+    );
+  }
+
   const handleSubmit = async () => {
     const content = inputRef.current?.value as string;
+    if (!content) return; // Prevent sending empty messages
+
     if (inputRef && inputRef.current) {
       inputRef.current.value = '';
     }
@@ -25,6 +74,7 @@ const Chat = () => {
     const chatData = await sendChatRequest(content);
     setChatMessages([...chatData.chats]);
   };
+
   return (
     <Box
       sx={{
@@ -51,7 +101,7 @@ const Chat = () => {
             bgcolor: '#232323',
             borderRadius: 5,
             flexDirection: 'column',
-            msx: 3,
+            mx: 3,
           }}
         >
           <Avatar
@@ -63,20 +113,20 @@ const Chat = () => {
               fontWeight: 700,
             }}
           >
-            {auth?.user?.name[0]}
-            {auth?.user?.name.split(' ')[1][0]}
+            {/* FIX APPLIED HERE */}
+            {getInitials(auth?.user?.name)}
           </Avatar>
           <Typography
             sx={{
-              ms: 'auto',
+              mx: 'auto',
               fontFamily: 'work sans',
               px: 2,
             }}
           >
-            Hello, {auth?.user?.name.split(' ')[0] || 'User'}!<br />I am ARIA,
-            your personal AI Assistant.
+            Hello, {auth?.user?.name ? auth.user.name.split(' ')[0] : 'User'}!
+            <br />I am ARIA, your personal AI Assistant.
           </Typography>
-          <Typography sx={{ ms: 'auto', fontFamily: 'work sans', my: 3, p: 3 }}>
+          <Typography sx={{ mx: 'auto', fontFamily: 'work sans', my: 3, p: 3 }}>
             You can ask me anything, and I will do my best to help you. I am
             here to assist you with anything you need.
           </Typography>
@@ -142,10 +192,15 @@ const Chat = () => {
             margin: 'auto',
           }}
         >
-          {' '}
           <input
             ref={inputRef}
             type='text'
+            placeholder='Type your message...'
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSubmit();
+              }
+            }}
             style={{
               width: '100%',
               backgroundColor: 'transparent',
