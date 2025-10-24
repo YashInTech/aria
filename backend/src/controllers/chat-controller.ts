@@ -40,3 +40,33 @@ export const generateChatCompletion = async (
     return res.status(500).json({ message: 'Something went wrong' });
   }
 };
+
+export const sendChatsToUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    //user token check
+    console.log('Verifying user with ID:', res.locals.jwtData.id);
+    const user = await User.findById(res.locals.jwtData.id);
+    if (!user) {
+      console.log('User not found in database');
+      return res.status(401).json({
+        message: 'ERROR',
+        cause: 'User not registered OR Token malfunctioned',
+      });
+    }
+    if (user._id.toString() !== res.locals.jwtData.id) {
+      console.log('User ID mismatch');
+      return res
+        .status(401)
+        .json({ message: 'ERROR', cause: 'Permission Denied' });
+    }
+    console.log('User verification successful:', user.email);
+    return res.status(200).json({ message: 'OK', chats: user.chats });
+  } catch (error) {
+    console.error('User verification error:', error);
+    return res.status(500).json({ message: 'ERROR', cause: error.message });
+  }
+};

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { Box, Avatar, Typography, Button, IconButton } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { red } from '@mui/material/colors';
@@ -74,6 +74,21 @@ const Chat = () => {
     const chatData = await sendChatRequest(content);
     setChatMessages([...chatData.chats]);
   };
+
+  useLayoutEffect(() => {
+    if (auth?.isLoggedIn && auth.user) {
+      toast.loading('Loading Chats', { id: 'loadchats' });
+      getUserChats()
+        .then((data) => {
+          setChatMessages([...data.chats]);
+          toast.success('Successfully Loaded chats', { id: 'loadchats' });
+        })
+        .catch((err) => {
+          console.log(err);
+          toast.error('Loading Failed', { id: 'loadchats' });
+        });
+    }
+  }, []);
 
   return (
     <Box
