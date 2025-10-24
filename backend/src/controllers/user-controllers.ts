@@ -11,11 +11,13 @@ export const getAllUsers = async (
 ) => {
   try {
     //get all users
+    console.log('Fetching all users from database...');
     const users = await User.find();
+    console.log('Found users:', users.length);
     return res.status(200).json({ message: 'OK', users });
   } catch (error) {
-    console.log(error);
-    return res.status(200).json({ message: 'ERROR', cause: error.message });
+    console.error('Error fetching users:', error);
+    return res.status(500).json({ message: 'ERROR', cause: error.message });
   }
 };
 
@@ -27,11 +29,20 @@ export const userSignup = async (
   try {
     //user signup
     const { name, email, password } = req.body;
+    console.log('Signup attempt:', { name, email });
+
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(401).send('User already exists');
+    if (existingUser) {
+      console.log('User already exists:', email);
+      return res
+        .status(401)
+        .json({ message: 'ERROR', cause: 'User already exists' });
+    }
+
     const hashedPassword = await hash(password, 10);
     const user = new User({ name, email, password: hashedPassword });
-    await user.save();
+    const savedUser = await user.save();
+    console.log('User created successfully:', savedUser._id);
 
     // create token and store cookie
     res.clearCookie(COOKIE_NAME, {
@@ -71,11 +82,15 @@ export const userLogin = async (
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).send('User not registered');
+      return res
+        .status(401)
+        .json({ message: 'ERROR', cause: 'User not registered' });
     }
     const isPasswordCorrect = await compare(password, user.password);
     if (!isPasswordCorrect) {
-      return res.status(403).send('Incorrect Password ');
+      return res
+        .status(403)
+        .json({ message: 'ERROR', cause: 'Incorrect Password' });
     }
 
     // create token and store cookie
@@ -113,18 +128,29 @@ export const verifyUser = async (
 ) => {
   try {
     //user token check
+    console.log('Verifying user with ID:', res.locals.jwtData.id);
     const user = await User.findById(res.locals.jwtData.id);
     if (!user) {
-      return res.status(401).send('User not registered OR Token malfunctioned');
+      console.log('User not found in database');
+      return res
+        .status(401)
+        .json({
+          message: 'ERROR',
+          cause: 'User not registered OR Token malfunctioned',
+        });
     }
     if (user._id.toString() !== res.locals.jwtData.id) {
-      return res.status(401).send('Permission Denied');
+      console.log('User ID mismatch');
+      return res
+        .status(401)
+        .json({ message: 'ERROR', cause: 'Permission Denied' });
     }
+    console.log('User verification successful:', user.email);
     return res
       .status(200)
       .json({ message: 'OK', name: user.name, email: user.email });
   } catch (error) {
-    console.log(error);
-    return res.status(200).json({ message: 'ERROR', cause: error.message });
+    console.error('User verification error:', error);
+    return res.status(500).json({ message: 'ERROR', cause: error.message });
   }
 };
